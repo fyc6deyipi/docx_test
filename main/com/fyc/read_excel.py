@@ -1,3 +1,4 @@
+import datetime as dt
 from datetime import datetime, timedelta
 import pandas as pd
 
@@ -10,21 +11,24 @@ def sout_dict(my_dict):
         print(f"{key}: {value}")
 
 def get_last_friday(param='0'):
-    # 直接计算上周五
-    last_friday = datetime.today() - timedelta(days=(datetime.today().weekday() + 3) % 7)
+    if dt.datetime.today().weekday() >=4:
+        last_friday = datetime.today() - timedelta(days=(datetime.today().weekday() + 3) % 7) - timedelta(7)
+        last_last_friday = last_friday - timedelta(7)
+    else:
+        # 直接计算上周五
+        last_friday = datetime.today() - timedelta(days=(datetime.today().weekday() + 3) % 7)
 
-    # 直接计算上上周五
-    last_last_friday = last_friday - timedelta(7)
+        # 直接计算上上周五
+        last_last_friday = last_friday - timedelta(7)
 
     if(param == -1):
         return int(last_last_friday.strftime('%Y%m%d'))
     return int(last_friday.strftime('%Y%m%d'))
 
 
-def read_excel(my_dict):
+def read_excel_part1(my_dict):
     # df = pd.read_excel('C:\\Users\\ycf\\Desktop\\write_docx\\data.xlsx', sheet_name='Sheet1',header=0)
     df = pd.read_excel('C:\\Users\\Administrator\\Desktop\\write_docx\\data.xlsx', sheet_name='Sheet1',header=0)
-
 
     # 1源端系统全量纳管和动态监测
     # a_源端系统1
@@ -133,13 +137,16 @@ def read_excel(my_dict):
     my_dict['a_93共享层一级系统表'] = int(a_93共享层一级系统表)
     #a_93共享层表血缘覆盖率
     my_dict['a_93共享层表血缘覆盖率'] = round(my_dict['a_93源端至共享层有血缘的源端表数量']/a_93共享层一级系统表*100,2)
-
-
-
-    sout_dict(my_dict)
     return my_dict
 
+def read_excel_part2(my_dict):
+    # df = pd.read_excel('C:\\Users\\ycf\\Desktop\\write_docx\\data.xlsx', sheet_name='Sheet1',header=0)
+    df = pd.read_excel('C:\\Users\\Administrator\\Desktop\\write_docx\\data.xlsx', sheet_name='Sheet1',header=0)
 
 
-write_docx(read_excel(my_dict))
-# read_excel(my_dict)
+# my_dict = read_excel_part1(my_dict)
+# sout_dict(my_dict)
+
+# my_dict = read_excel_part1(my_dict)
+# read_excel_part2(my_dict)
+print(get_last_friday(-1))
