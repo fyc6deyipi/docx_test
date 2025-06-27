@@ -146,7 +146,9 @@ class excel2word:
         data19_l = self.data[condition]
         condition = self.get_condition(sys='core',week=-1)
         data19_ll = self.data[condition]
-        print(data19_l.head(100))
+        index = data19_l[['systemname', 'jczb002', 'jczb007']].sum()
+        index['aa'] = index['jczb007'] / index['jczb002']
+        print(index)
 
     def run (self):
         # self.read_excel_part1()
