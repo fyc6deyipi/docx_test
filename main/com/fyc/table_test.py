@@ -1,14 +1,18 @@
 import pandas as pd
 
-df = pd.read_excel('C:\\Users\\Administrator\\Desktop\\write_docx\\data.xlsx', sheet_name='Sheet1',header=0)
+# 创建示例数据集
+data = {'学生姓名': ['Alice', 'Bob', 'Charlie', 'David', 'Eva'],
+        '分数': [85, 70, 95, 60, 75]}
 
+df = pd.DataFrame(data)
 
+# 定义条件和对应的值
+conditions = [df['分数'] >= 90, (df['分数'] >= 80) & (df['分数'] < 90), df['分数'] < 80]
+values = ['优秀', '良好', '及格']
 
-data = df[[ 'jczb002', 'jczb007']].copy()
-print(data.head(199))
-data.rename(columns={'jczb002':'纳管表数量','jczb007':'技术元数据质量合格表数量'}, inplace=True)
-index = data.sum()
-index['技术元数据质量合格率'] = round(index['技术元数据质量合格表数量'] /index['纳管表数量']*100,2)
-print(index)
-# # join = index.join(index, how='inner')
-# pd.merge(index, index, how='inner', on='0')
+# 使用 case_when() 方法创建新列
+df['等级'] = df['分数'].case_when(conditions, values, default='不及格')
+
+# 输出结果
+print(df)
+
