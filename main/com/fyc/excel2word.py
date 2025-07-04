@@ -29,9 +29,9 @@ class excel2word:
     def get_condition(self,sys,week=0):
         condition=''
         if sys=='sys_19':
-            condition = (self.data['ds'] == self.get_last_friday(week)) & (self.data['systemname'] == sys)
+            condition = (self.data['ds'] == self.get_last_friday(week)) & (self.data['sys_status'] == '已纳管已盘点') & (self.data['is_core_sys'] == '是')
         elif sys=='sys_93':
-            condition = (self.data['ds'] == self.get_last_friday(week)) & (self.data['systemname']== sys)
+            condition = (self.data['ds'] == self.get_last_friday(week)) & (self.data['sys_status'].str.contains('已纳管'))
         elif sys=='sys_all':
             condition= (self.data['ds'] == self.get_last_friday(week))
         else:
@@ -143,71 +143,139 @@ class excel2word:
         # a_93共享层表血缘覆盖率
         self.my_dict['a_93共享层表血缘覆盖率'] = round(self.my_dict['a_93源端至共享层有血缘的源端表数量'] / a_93共享层一级系统表 * 100, 2)
 
-    def read_excel_part2(self):
+    def read_excel_part2_1(self):
 
         # condition = self.get_condition(sys='sys_93',week=0)
-        data19_l = self.data[self.data['systemname'] == 'sys_93'].copy()[['jczb001','jczb008','ds']]
-        data19_l.rename(columns={'jczb001':'源端数据表数量','jczb008':'技术元数据质量合格率'}, inplace=True)
-        data19_l.set_index('ds', inplace=True)
-        data19_l = data19_l.transpose()
-        data19_l.reset_index(drop=False, inplace=True)
-        data19_l=data19_l.assign(
+        data93_l = self.data[self.data['systemname'] == 'sys_93'].copy()[['jczb001','jczb008','ds']]
+        data93_l.rename(columns={'jczb001':'源端数据表数量','jczb008':'技术元数据质量合格率'}, inplace=True)
+        data93_l.set_index('ds', inplace=True)
+        data93_l = data93_l.transpose()
+        data93_l.reset_index(drop=False, inplace=True)
+        data93_l=data93_l.assign(
             value1= lambda df: df['index'].case_when(
                 [
-                    (lambda s: s.str.contains('率'),data19_l[self.get_last_friday()]-data19_l[self.get_last_friday(-1)])
-                    ,(lambda s: s.str.contains('数量'),round((data19_l[self.get_last_friday()]-data19_l[self.get_last_friday(-1)])/data19_l[self.get_last_friday(-1)]*100,2))
+                    (lambda s: s.str.contains('率'),data93_l[self.get_last_friday()]-data93_l[self.get_last_friday(-1)])
+                    ,(lambda s: s.str.contains('数量'),round((data93_l[self.get_last_friday()]-data93_l[self.get_last_friday(-1)])/data93_l[self.get_last_friday(-1)]*100,2))
                 ]
             )
         )
 
-        data19_ll = self.data[self.data['systemname'] == 'sys_19'].copy()[['jczb001', 'jczb008', 'ds']]
-        data19_ll.rename(columns={'jczb001': '已盘点源端数据表数量', 'jczb008': '已盘点技术元数据质量合格率'}, inplace=True)
-        data19_ll.set_index('ds', inplace=True)
-        data19_ll = data19_ll.transpose()
-        data19_ll.reset_index(drop=False, inplace=True)
-        data19_ll = data19_ll.assign(
+        data19_l = self.data[self.data['systemname'] == 'sys_19'].copy()[['jczb001', 'jczb008', 'ds']]
+        data19_l.rename(columns={'jczb001': '已盘点源端数据表数量', 'jczb008': '已盘点技术元数据质量合格率'}, inplace=True)
+        data19_l.set_index('ds', inplace=True)
+        data19_l = data19_l.transpose()
+        data19_l.reset_index(drop=False, inplace=True)
+        data19_l = data19_l.assign(
             value1=lambda df: df['index'].case_when(
                 [
                     (lambda s: s.str.contains('率'),
-                     data19_ll[self.get_last_friday()] - data19_ll[self.get_last_friday(-1)])
+                     data19_l[self.get_last_friday()] - data19_l[self.get_last_friday(-1)])
                     , (lambda s: s.str.contains('数量'), round(
-                    (data19_ll[self.get_last_friday()] - data19_ll[self.get_last_friday(-1)]) / data19_ll[
+                    (data19_l[self.get_last_friday()] - data19_l[self.get_last_friday(-1)]) / data19_l[
                         self.get_last_friday(-1)] * 100, 2))
                 ]
             )
         )
-        data = pd.concat([data19_l, data19_ll], ignore_index=True)
+        data = pd.concat([data93_l, data19_l], ignore_index=True)
+        # print(data)
         for x in range (4):
             for y in range (4):
                 self.my_dict['b1_t_'+str(x)+'_'+str(y)] = data.iloc[x,y]
-        # condition = [data19_l['index'].str.contains('率')]
-        # tmp= data19_l[self.get_last_friday()]-data19_l[self.get_last_friday(-1)]
-        # value = [tmp]
-        # data19_l['value'] = data19_l['index'].case_when(condition, value, default=0)
-        # print(data19_l)
-        #
 
+        condition = self.get_condition('sys_19')
+        data19 = self.data[condition][['systemname', 'jczb008']]
+        sort_values = data19[data19['jczb008'] < 90].sort_values(by=['jczb008'], ascending=False)
+        for x in range (len(sort_values)):
+            print(sort_values.iloc[x,0])
+        print(data19)
+        print(sort_values)
+        
 
-        # data19_l_sum = data19_l[ ['纳管表数量', '技术元数据质量合格表数量']].sum()
-        # data19_l_sum['技术元数据质量合格率'] = round(data19_l_sum['技术元数据质量合格表数量'] / data19_l_sum['纳管表数量'] * 100, 2)
-        # print(data19_l_sum.head())
-        #
-        # condition = self.get_condition(sys='core',week=-1)
-        # data19_ll = self.data[condition].copy()
-        # data19_ll.rename(columns={'jczb002':'纳管表数量','jczb007':'技术元数据质量合格表数量'}, inplace=True)
-        # data19_ll_sum =  data19_ll[ ['纳管表数量', '技术元数据质量合格表数量']].sum()
-        # data19_ll_sum['技术元数据质量合格率'] = round(data19_ll_sum['技术元数据质量合格表数量'] / data19_ll_sum['纳管表数量'] * 100, 2)
-        # print(data19_ll_sum.head())
+    def read_excel_part2_2(self):
 
+        data93_l = self.data[self.data['systemname'] == 'sys_93'].copy()[['jczb001','jczb010','ds']]
+        data93_l.rename(columns={'jczb001':'源端数据表数量','jczb010':'业务元数据质量合格率'}, inplace=True)
+        data93_l.set_index('ds', inplace=True)
+        data93_l = data93_l.transpose()
+        data93_l.reset_index(drop=False, inplace=True)
+        data93_l=data93_l.assign(
+            value1= lambda df: df['index'].case_when(
+                [
+                    (lambda s: s.str.contains('率'),data93_l[self.get_last_friday()]-data93_l[self.get_last_friday(-1)])
+                    ,(lambda s: s.str.contains('数量'),round((data93_l[self.get_last_friday()]-data93_l[self.get_last_friday(-1)])/data93_l[self.get_last_friday(-1)]*100,2))
+                ]
+            )
+        )
 
+        data19_l = self.data[self.data['systemname'] == 'sys_19'].copy()[['jczb001', 'jczb010', 'ds']]
+        data19_l.rename(columns={'jczb001': '已盘点源端数据表数量', 'jczb010': '已盘点业务元数据质量合格率'}, inplace=True)
+        data19_l.set_index('ds', inplace=True)
+        data19_l = data19_l.transpose()
+        data19_l.reset_index(drop=False, inplace=True)
+        data19_l = data19_l.assign(
+            value1=lambda df: df['index'].case_when(
+                [
+                    (lambda s: s.str.contains('率'),
+                     data19_l[self.get_last_friday()] - data19_l[self.get_last_friday(-1)])
+                    , (lambda s: s.str.contains('数量'), round(
+                    (data19_l[self.get_last_friday()] - data19_l[self.get_last_friday(-1)]) / data19_l[
+                        self.get_last_friday(-1)] * 100, 2))
+                ]
+            )
+        )
+        data = pd.concat([data93_l, data19_l], ignore_index=True)
+        print(data)
+        for x in range (4):
+            for y in range (4):
+                self.my_dict['b2_t_'+str(x)+'_'+str(y)] = data.iloc[x,y]
+
+    def read_excel_part2_3(self):
+
+        data93_l = self.data[self.data['systemname'] == 'sys_93'].copy()[['jczb001','jczb012','jczb013','ds']]
+        data93_l.rename(columns={'jczb001':'源端数据表数量','jczb012':'源端系统管理元数据质量标签维护率','jczb013':'管理元数据负面清单维护率'}, inplace=True)
+        data93_l.set_index('ds', inplace=True)
+        data93_l = data93_l.transpose()
+        data93_l.reset_index(drop=False, inplace=True)
+        data93_l=data93_l.assign(
+            value1= lambda df: df['index'].case_when(
+                [
+                    (lambda s: s.str.contains('率'),data93_l[self.get_last_friday()]-data93_l[self.get_last_friday(-1)])
+                    ,(lambda s: s.str.contains('数量'),round((data93_l[self.get_last_friday()]-data93_l[self.get_last_friday(-1)])/data93_l[self.get_last_friday(-1)]*100,2))
+                ]
+            )
+        )
+        data19_l = self.data[self.data['systemname'] == 'sys_19'].copy()[['jczb001', 'jczb012', 'jczb013', 'ds']]
+        data19_l.rename(columns={'jczb001': '已盘点源端系统数据表数量', 'jczb012': '已盘点源端系统管理元数据质量标签维护率',
+                                 'jczb013': '已盘点管理元数据负面清单维护率'}, inplace=True)
+        data19_l.set_index('ds', inplace=True)
+        data19_l = data19_l.transpose()
+        data19_l.reset_index(drop=False, inplace=True)
+        data19_l = data19_l.assign(
+            value1=lambda df: df['index'].case_when(
+                [
+                    (lambda s: s.str.contains('率'),
+                     data19_l[self.get_last_friday()] - data19_l[self.get_last_friday(-1)])
+                    , (lambda s: s.str.contains('数量'), round(
+                    (data19_l[self.get_last_friday()] - data19_l[self.get_last_friday(-1)]) / data19_l[
+                        self.get_last_friday(-1)] * 100, 2))
+                ]
+            )
+        )
+        data = pd.concat([data93_l, data19_l], ignore_index=True)
+        print(data)
+        for x in range (6):
+            for y in range (4):
+                self.my_dict['b3_t_'+str(x)+'_'+str(y)] = data.iloc[x,y]
 
 
 
 
 
     def run (self):
-        self.read_excel_part1()
-        self.read_excel_part2()
+        # self.read_excel_part1()
+        self.read_excel_part2_1()
+        # self.read_excel_part2_2()
+        # self.read_excel_part2_3()
 
     def sout_dict(self):
         for key, value in self.my_dict.items():
