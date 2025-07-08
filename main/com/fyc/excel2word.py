@@ -177,7 +177,7 @@ class excel2word:
             )
         )
         data = pd.concat([data93_l, data19_l], ignore_index=True)
-        # print(data)
+        print(data)
         for x in range (4):
             for y in range (4):
                 self.my_dict['b1_t_'+str(x)+'_'+str(y)] = data.iloc[x,y]
@@ -185,11 +185,13 @@ class excel2word:
         condition = self.get_condition('sys_19')
         data19 = self.data[condition][['systemname', 'jczb008']]
         sort_values = data19[data19['jczb008'] < 90].sort_values(by=['jczb008'], ascending=False)
-        for x in range (len(sort_values)):
-            print(sort_values.iloc[x,0])
-        print(data19)
-        print(sort_values)
-        
+        length=len(sort_values)
+        if length == 0 :
+            self.my_dict['b1_ms']=''
+        elif len(sort_values) == 1 :
+            self.my_dict['b1_ms'] = '其中，'+ sort_values.iloc[x, 0] +'系统技术元数据维护情况较差，合格率低于90%，不合格原因主要为字段名不完整。'
+        elif len(sort_values) > 1 :
+            self.my_dict['b1_ms']='其中，'+sort_values.iloc[0,0]+'、'+sort_values.iloc[1,0]+'等系统技术元数据维护情况较差，合格率低于90%，不合格原因主要为字段名不完整。'
 
     def read_excel_part2_2(self):
 
@@ -229,6 +231,17 @@ class excel2word:
             for y in range (4):
                 self.my_dict['b2_t_'+str(x)+'_'+str(y)] = data.iloc[x,y]
 
+        condition = self.get_condition('sys_19')
+        data19 = self.data[condition][['systemname', 'jczb010']]
+        sort_values = data19[data19['jczb010'] < 90].sort_values(by=['jczb010'], ascending=False)
+        length = len(sort_values)
+        if length == 0:
+            self.my_dict['b2_ms'] = ''
+        elif len(sort_values) == 1:
+            self.my_dict['b2_ms'] = '其中，' + sort_values.iloc[x, 0] + '系统业务元数据维护情况较差，合格率低于90%，不合格原因主要为XXX。'
+        elif len(sort_values) > 1:
+            self.my_dict['b2_ms'] = '其中，' + sort_values.iloc[0, 0] + '、' + sort_values.iloc[1, 0] + '等系统业务元数据维护情况较差，合格率低于90%，不合格原因主要为字段名不完整XXX。'
+
     def read_excel_part2_3(self):
 
         data93_l = self.data[self.data['systemname'] == 'sys_93'].copy()[['jczb001','jczb012','jczb013','ds']]
@@ -262,20 +275,70 @@ class excel2word:
             )
         )
         data = pd.concat([data93_l, data19_l], ignore_index=True)
-        print(data)
         for x in range (6):
             for y in range (4):
                 self.my_dict['b3_t_'+str(x)+'_'+str(y)] = data.iloc[x,y]
 
+        condition = self.get_condition('sys_19')
+        data19 = self.data[condition][['systemname', 'jczb010']]
+        sort_values = data19[data19['jczb010'] < 90].sort_values(by=['jczb010'], ascending=False)
+        length = len(sort_values)
+        if length == 0:
+            self.my_dict['b3_ms'] = ''
+        elif len(sort_values) == 1:
+            self.my_dict['b3_ms'] = '其中，' + sort_values.iloc[x, 0] + '系统管理元数据质量标签维护情况较差，合格率低于90%，不合格原因主要为XXX。'
+        elif len(sort_values) > 1:
+            self.my_dict['b3_ms'] = '其中，' + sort_values.iloc[0, 0] + '、' + sort_values.iloc[1, 0] + '等系统管理元数据质量标签维护情况较差，合格率低于90%，不合格原因主要为字段名不完整XXX。'
 
+    def read_excel_part2_4(self):
+        condition = self.get_condition('sys_19')
+        data_19_l = self.data[condition][['systemname','jczb001', 'jczb008', 'ds']]
+        condition = self.get_condition('sys_19',-1)
+        data_19_ll = self.data[condition].copy()[['systemname', 'jczb001', 'jczb008', 'ds']]
+        merge = pd.merge(data_19_l, data_19_ll, how='left', on=['systemname'])[['systemname','jczb001_x', 'jczb008_x','jczb008_y']]
+        merge['lv'] = merge['jczb008_x']-merge['jczb008_y']
+        sort_value = merge.sort_values(by=['lv','jczb001_x'], ascending=False)
+
+        data19_l = self.data[(self.data['systemname'] == 'sys_19')&(self.data['ds'] == self.get_last_friday())][['systemname','jczb001', 'jczb008', 'ds']]
+        data19_ll = self.data[(self.data['systemname'] == 'sys_19')&(self.data['ds'] == self.get_last_friday(-1))][['systemname','jczb001', 'jczb008', 'ds']]
+        merge = pd.merge(data19_l, data19_ll, how='left', on=['systemname'])[['systemname', 'jczb001_x', 'jczb008_x', 'jczb008_y']]
+        merge['lv'] = merge['jczb008_x'] - merge['jczb008_y']
+
+        data = pd.concat([sort_value, merge], axis=0, sort=False)
+        print(data)
+        for x in range(20):
+            for y in range(5):
+                self.my_dict['b4_t_' + str(x) + '_' + str(y)] = data.iloc[x, y]
+
+    def read_excel_part2_5_1(self):
+        condition = self.get_condition('sys_19')
+        data_19_l = self.data[condition][['systemname','jczb001', 'jczb079', 'ds']]
+        condition = self.get_condition('sys_19',-1)
+        data_19_ll = self.data[condition].copy()[['systemname', 'jczb001', 'jczb079', 'ds']]
+        merge = pd.merge(data_19_l, data_19_ll, how='left', on=['systemname'])[['systemname','jczb001_x', 'jczb079_x','jczb079_y']]
+        merge['lv'] = merge['jczb079_x']-merge['jczb079_y']
+        sort_value = merge.sort_values(by=['lv','jczb001_x'], ascending=False)
+
+        data19_l = self.data[(self.data['systemname'] == 'sys_19')&(self.data['ds'] == self.get_last_friday())][['systemname','jczb001', 'jczb079', 'ds']]
+        data19_ll = self.data[(self.data['systemname'] == 'sys_19')&(self.data['ds'] == self.get_last_friday(-1))][['systemname','jczb001', 'jczb079', 'ds']]
+        merge = pd.merge(data19_l, data19_ll, how='left', on=['systemname'])[['systemname', 'jczb001_x', 'jczb079_x', 'jczb079_y']]
+        merge['lv'] = merge['jczb079_x'] - merge['jczb079_y']
+
+        data = pd.concat([sort_value, merge], axis=0, sort=False)
+        print(data)
+        for x in range(20):
+            for y in range(5):
+                self.my_dict['b5_t1_' + str(x) + '_' + str(y)] = data.iloc[x, y]
 
 
 
     def run (self):
         # self.read_excel_part1()
-        self.read_excel_part2_1()
+        # self.read_excel_part2_1()
         # self.read_excel_part2_2()
         # self.read_excel_part2_3()
+        # self.read_excel_part2_4()
+        self.read_excel_part2_5_1()
 
     def sout_dict(self):
         for key, value in self.my_dict.items():
