@@ -102,6 +102,8 @@ class excel2word:
         self.my_dict['a_技术质量合格表'] = int(a_技术质量合格表)
         # a_技术质量合格率
         self.my_dict['a_技术质量合格率'] = round(self.my_dict['a_技术质量合格表'] / self.my_dict['a_质量校核表'] * 100,4)
+
+
         # a_业务质量合格表 jczb093
         a_业务质量合格表 = a_已盘点核心系统['jczb093'].sum()
         self.my_dict['a_业务质量合格表'] = int(a_业务质量合格表)
@@ -292,16 +294,25 @@ class excel2word:
 
     def read_excel_part2_4(self):
         condition = self.get_condition('sys_19')
-        data_19_l = self.data[condition][['systemname','jczb001', 'jczb008', 'ds']]
+        data= self.data[condition]
+        change = data[(data['jczb003'] > 0) | (data['jczb004'] > 0) | (data['jczb005'] > 0)][['jczb003', 'jczb004', 'jczb005']]
+        self.my_dict['b4_元数据变化系统'] = len(change)
+        change_sum = change.sum()
+        self.my_dict['b4_新增纳管表'] = change_sum['jczb003']
+        self.my_dict['b4_删除纳管表'] = change_sum['jczb004']
+        self.my_dict['b4_修改纳管表'] = change_sum['jczb005']
+
+        data_19_l = data[['systemname','jczb001', 'jczb008', 'ds']]
         condition = self.get_condition('sys_19',-1)
         data_19_ll = self.data[condition].copy()[['systemname', 'jczb001', 'jczb008', 'ds']]
-        merge = pd.merge(data_19_l, data_19_ll, how='left', on=['systemname'])[['systemname','jczb001_x', 'jczb008_x','jczb008_y']]
+        merge = pd.merge(data_19_l, data_19_ll, how='left', on=['systemname'])[['systemname','jczb001_x', 'jczb008_y','jczb008_x']]
         merge['lv'] = merge['jczb008_x']-merge['jczb008_y']
         sort_value = merge.sort_values(by=['lv','jczb001_x'], ascending=False)
 
+
         data19_l = self.data[(self.data['systemname'] == 'sys_19')&(self.data['ds'] == self.get_last_friday())][['systemname','jczb001', 'jczb008', 'ds']]
         data19_ll = self.data[(self.data['systemname'] == 'sys_19')&(self.data['ds'] == self.get_last_friday(-1))][['systemname','jczb001', 'jczb008', 'ds']]
-        merge = pd.merge(data19_l, data19_ll, how='left', on=['systemname'])[['systemname', 'jczb001_x', 'jczb008_x', 'jczb008_y']]
+        merge = pd.merge(data19_l, data19_ll, how='left', on=['systemname'])[['systemname', 'jczb001_x', 'jczb008_y', 'jczb008_x']]
         merge['lv'] = merge['jczb008_x'] - merge['jczb008_y']
 
         data = pd.concat([sort_value, merge], axis=0, sort=False)
@@ -315,14 +326,14 @@ class excel2word:
         data_19_l = self.data[condition][['systemname','jczb001', 'jczb079', 'ds']]
         condition = self.get_condition('sys_19',-1)
         data_19_ll = self.data[condition].copy()[['systemname', 'jczb001', 'jczb079', 'ds']]
-        merge = pd.merge(data_19_l, data_19_ll, how='left', on=['systemname'])[['systemname','jczb001_x', 'jczb079_x','jczb079_y']]
-        merge['lv'] = merge['jczb079_x']-merge['jczb079_y']
+        merge = pd.merge(data_19_l, data_19_ll, how='left', on=['systemname'])[['systemname','jczb001_x', 'jczb079_y','jczb079_x']]
+        merge['lv'] = round(merge['jczb079_x']-merge['jczb079_y'],2)
         sort_value = merge.sort_values(by=['lv','jczb001_x'], ascending=False)
 
         data19_l = self.data[(self.data['systemname'] == 'sys_19')&(self.data['ds'] == self.get_last_friday())][['systemname','jczb001', 'jczb079', 'ds']]
         data19_ll = self.data[(self.data['systemname'] == 'sys_19')&(self.data['ds'] == self.get_last_friday(-1))][['systemname','jczb001', 'jczb079', 'ds']]
-        merge = pd.merge(data19_l, data19_ll, how='left', on=['systemname'])[['systemname', 'jczb001_x', 'jczb079_x', 'jczb079_y']]
-        merge['lv'] = merge['jczb079_x'] - merge['jczb079_y']
+        merge = pd.merge(data19_l, data19_ll, how='left', on=['systemname'])[['systemname', 'jczb001_x', 'jczb079_y', 'jczb079_x']]
+        merge['lv'] = round(merge['jczb079_x']-merge['jczb079_y'],2)
 
         data = pd.concat([sort_value, merge], axis=0, sort=False)
         print(data)
@@ -330,15 +341,126 @@ class excel2word:
             for y in range(5):
                 self.my_dict['b5_t1_' + str(x) + '_' + str(y)] = data.iloc[x, y]
 
+    def read_excel_part3_1(self):
+        # jczb045 质量校核率
+        data19_l = self.data[self.data['systemname'] == 'sys_19'].copy()[
+            ['jczb043', 'jczb045', 'jczb054', 'jczb055', 'ds']]
+        data19_l.rename(columns={'jczb043': '覆盖质量校核表数量', 'jczb045': '质量校核率', 'jczb054': '技术质量合格表',
+                                 'jczb055': '技术质量合格率'}, inplace=True)
+        data19_l.set_index('ds', inplace=True)
+        data19_l = data19_l.transpose()
+        data19_l.reset_index(drop=False, inplace=True)
+        data19_l = data19_l.assign(
+            value1=lambda df: df['index'].case_when(
+                [
+                    (lambda s: s.str.contains('率'),
+                     data19_l[self.get_last_friday()] - data19_l[self.get_last_friday(-1)])
+                    , (lambda s: s.str.contains('表'), round(
+                    (data19_l[self.get_last_friday()] - data19_l[self.get_last_friday(-1)]) / data19_l[
+                        self.get_last_friday(-1)] * 100, 2))
+                ]
+            )
+        )
+        for x in range(4):
+            for y in range(4):
+                self.my_dict['c1_t_' + str(x) + '_' + str(y)] = data19_l.iloc[x, y]
+        lv_change = self.my_dict['c1_t_1_3']
+        if lv_change > 0:
+            self.my_dict['c1_质量校核率变化'] = '增加'+str(lv_change)+'%'
+        elif lv_change < 0:
+            self.my_dict['c1_质量校核率变化'] = '减少'+str(abs(lv_change)) +'%'
+        else:
+            self.my_dict['c1_质量校核率变化'] = '不变'
 
+    def read_excel_part3_1_1(self):
+        # 表7.数据表质量校核情况监测
+        condition = self.get_condition('sys_19')
+        data_19_l = self.data[condition][['systemname', 'jczb043', 'jczb045','ds']]
+        condition = self.get_condition('sys_19', -1)
+        data_19_ll = self.data[condition][['systemname', 'jczb043', 'jczb045', 'ds']]
+        merge = pd.merge(data_19_l, data_19_ll, how='left', on=['systemname'])[['systemname', 'jczb043_x', 'jczb045_y', 'jczb045_x']]
+        merge['lv'] = merge['jczb045_x'] - merge['jczb045_y']
+        sort_value = merge.sort_values(by=['lv', 'jczb043_x'], ascending=False)
+
+        data19_l = self.data[(self.data['systemname'] == 'sys_19') & (self.data['ds'] == self.get_last_friday())][['systemname', 'jczb043', 'jczb045', 'ds']]
+        data19_ll = self.data[(self.data['systemname'] == 'sys_19') & (self.data['ds'] == self.get_last_friday(-1))][['systemname', 'jczb043', 'jczb045', 'ds']]
+        merge = pd.merge(data19_l, data19_ll, how='left', on=['systemname'])[['systemname', 'jczb043_x', 'jczb045_y', 'jczb045_x']]
+        merge['lv'] = merge['jczb045_x'] - merge['jczb045_y']
+
+        data = pd.concat([sort_value, merge], axis=0, sort=False)
+        for x in range(20):
+            for y in range(5):
+                self.my_dict['c1_1_t1_' + str(x) + '_' + str(y)] = data.iloc[x, y]
+
+        # 表8.技术校核覆盖率情况监测
+        condition = self.get_condition('sys_19')
+        data_19_l = self.data[condition][['systemname', 'jczb054', 'jczb055', 'ds']]
+        condition = self.get_condition('sys_19', -1)
+        data_19_ll = self.data[condition][['systemname', 'jczb054', 'jczb055', 'ds']]
+        merge = pd.merge(data_19_l, data_19_ll, how='left', on=['systemname'])[
+            ['systemname', 'jczb054_x', 'jczb055_y', 'jczb055_x']]
+        merge['lv'] = merge['jczb055_x'] - merge['jczb055_y']
+        sort_value = merge.sort_values(by=['lv', 'jczb054_x'], ascending=False)
+
+        data19_l = self.data[(self.data['systemname'] == 'sys_19') & (self.data['ds'] == self.get_last_friday())][
+            ['systemname', 'jczb054', 'jczb055', 'ds']]
+        data19_ll = self.data[(self.data['systemname'] == 'sys_19') & (self.data['ds'] == self.get_last_friday(-1))][
+            ['systemname', 'jczb054', 'jczb055', 'ds']]
+        merge = pd.merge(data19_l, data19_ll, how='left', on=['systemname'])[
+            ['systemname', 'jczb054_x', 'jczb055_y', 'jczb055_x']]
+        merge['lv'] = merge['jczb055_x'] - merge['jczb055_y']
+
+        data = pd.concat([sort_value, merge], axis=0, sort=False)
+        for x in range(20):
+            for y in range(5):
+                self.my_dict['c1_1_t2_' + str(x) + '_' + str(y)] = data.iloc[x, y]
+
+        # 表9.技术校核覆盖率下的观察指标情况监测
+        condition = self.get_condition('sys_19')
+        data_19_l = self.data[condition][['systemname', 'jczb093', 'jczb094', 'ds']]
+        condition = self.get_condition('sys_19', -1)
+        data_19_ll = self.data[condition][['systemname', 'jczb093', 'jczb094', 'ds']]
+        merge = pd.merge(data_19_l, data_19_ll, how='left', on=['systemname'])[
+            ['systemname', 'jczb093_x', 'jczb094_y', 'jczb094_x']]
+        merge['lv'] = merge['jczb094_x'] - merge['jczb094_y']
+        sort_value = merge.sort_values(by=['lv', 'jczb093_x'], ascending=False)
+
+        data19_l = self.data[(self.data['systemname'] == 'sys_19') & (self.data['ds'] == self.get_last_friday())][
+            ['systemname', 'jczb093', 'jczb094', 'ds']]
+        data19_ll = self.data[(self.data['systemname'] == 'sys_19') & (self.data['ds'] == self.get_last_friday(-1))][
+            ['systemname', 'jczb093', 'jczb094', 'ds']]
+        merge = pd.merge(data19_l, data19_ll, how='left', on=['systemname'])[
+            ['systemname', 'jczb093_x', 'jczb094_y', 'jczb094_x']]
+        merge['lv'] = merge['jczb094_x'] - merge['jczb094_y']
+
+        data = pd.concat([sort_value, merge], axis=0, sort=False)
+        for x in range(20):
+            for y in range(5):
+                self.my_dict['c1_1_t4_' + str(x) + '_' + str(y)] = data.iloc[x, y]
+
+        # 表11.业务校核覆盖率下的观察指标情况监测
+        data19_l = self.data[self.data['systemname'] == 'sys_19'].copy()[
+            ['jczb093', 'jczb095', 'jczb096', 'jczb097', 'jczb098', 'jczb099', 'ds']]
+        data19_l.rename(columns={'jczb093': '业务校核表数量（张）', 'jczb095': '校核完整性表数量（张）', 'jczb096': '校核一致性表数量（张）',
+                                 'jczb097': '校核准确性表数量（张）','jczb098': '校核有效性表数量（张）','jczb099': '校核唯一性表数量（张）'}, inplace=True)
+        data19_l.set_index('ds', inplace=True)
+        data19_l = data19_l.transpose()
+        data19_l['lv']=round((data19_l[self.get_last_friday()] - data19_l[self.get_last_friday(-1)]) / data19_l[self.get_last_friday(-1)] * 100, 2)
+        data19_l.reset_index(drop=False, inplace=True)
+        for x in range(6):
+            for y in range(4):
+                self.my_dict['c1_1_t5_' + str(x) + '_' + str(y)] = data19_l.iloc[x, y]
 
     def run (self):
-        # self.read_excel_part1()
-        # self.read_excel_part2_1()
-        # self.read_excel_part2_2()
-        # self.read_excel_part2_3()
-        # self.read_excel_part2_4()
+        self.read_excel_part1()
+        self.read_excel_part2_1()
+        self.read_excel_part2_2()
+        self.read_excel_part2_3()
+        self.read_excel_part2_4()
         self.read_excel_part2_5_1()
+        self.read_excel_part3_1()
+        self.read_excel_part3_1_1()
+        # self.read_excel_part3_1_2()
 
     def sout_dict(self):
         for key, value in self.my_dict.items():
