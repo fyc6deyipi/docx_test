@@ -6,5 +6,5 @@ write_url = 'C:\\Users\\Administrator\\Desktop\\write_docx\\result.docx'
 
 write=excel2word(excel_url, word_url,write_url)
 write.run()
-write.sout_dict()
-write.write()
+# write.sout_dict()
+# write.write()
